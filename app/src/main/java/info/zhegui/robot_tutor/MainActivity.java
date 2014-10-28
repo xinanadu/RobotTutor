@@ -224,7 +224,7 @@ play();
             @Override
             public void run() {
                 setSpeechSynthesizerParams();
-                int ret = speechSynthesizer.speak(listSentence.get(listSentence.size()-1).content);
+                int ret = speechSynthesizer.speak(listSentence.get(1).content);
                 if (ret != 0) {
                     log("开始合成器失败：" + errorCodeAndDescription(ret));
                 }
@@ -239,7 +239,7 @@ play();
 
     private void setSpeechSynthesizerParams() {
         speechSynthesizer.setParam(SpeechSynthesizer.PARAM_SPEAKER,
-                SpeechSynthesizer .SPEAKER_FEMALE);
+                SpeechSynthesizer.SPEAKER_MALE);
         speechSynthesizer.setParam(SpeechSynthesizer.PARAM_VOLUME, "5");
         speechSynthesizer.setParam(SpeechSynthesizer.PARAM_SPEED, "5");
         speechSynthesizer.setParam(SpeechSynthesizer.PARAM_PITCH, "5");

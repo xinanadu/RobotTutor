@@ -50,7 +50,11 @@
         android:background="#E28C25"
         android:textColor="#ffffff"
         android:visibility="gone"
+        android:textIsSelectable="true"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
         android:id="@+id/tv_no_match"
+        android:descendantFocusability="beforeDescendants"
         android:text="@string/no_match"
         android:layout_height="wrap_content" />
 </RelativeLayout>
