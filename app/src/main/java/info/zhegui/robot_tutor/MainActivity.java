@@ -2,6 +2,7 @@ package info.zhegui.robot_tutor;
 
 import android.content.res.Resources;
 import android.graphics.Color;
+import android.media.AudioManager;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.ActionBarActivity;
@@ -18,6 +19,9 @@ import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.baidu.speechsynthesizer.SpeechSynthesizer;
+import com.baidu.speechsynthesizer.SpeechSynthesizerListener;
+import com.baidu.speechsynthesizer.publicutility.SpeechError;
 import com.baidu.voicerecognition.android.VoiceRecognitionConfig;
 import com.baidu.voicerecognition.android.ui.BaiduASRDigitalDialog;
 import com.baidu.voicerecognition.android.ui.DialogRecognitionListener;
@@ -36,6 +40,7 @@ public class MainActivity extends ActionBarActivity {
     private BaiduASRDigitalDialog mDialog = null;
 
     private DialogRecognitionListener mRecognitionListener;
+    private SpeechSynthesizer speechSynthesizer;
     private int mCurrentTheme = Config.DIALOG_THEME;
     private LinkedList<Sentence> listSentence = new LinkedList<Sentence>();
 
@@ -59,7 +64,7 @@ public class MainActivity extends ActionBarActivity {
                         showNoMatch();
                     } else {
                         String str = (String) msg.obj;
-    showMyDialog(str);
+                        showMyDialog(str);
                     }
                     break;
             }
@@ -68,12 +73,12 @@ public class MainActivity extends ActionBarActivity {
     };
 
     private void showNoMatch() {
-        Toast.makeText(MainActivity.this, "no match",Toast.LENGTH_SHORT).show();
+        Toast.makeText(MainActivity.this, "no match", Toast.LENGTH_SHORT).show();
     }
 
     private void showMyDialog(String strFilter) {
         if (tv != null) {
-            lastSentence=null;
+            lastSentence = null;
             tv.setText("");
             for (Sentence sentence : listSentence) {
                 String lineSeperator = "";
@@ -90,15 +95,16 @@ public class MainActivity extends ActionBarActivity {
                 int start = 0;
                 int end = str.indexOf("]") + 2;
 
-                    style.setSpan(new ForegroundColorSpan(Color.parseColor("#C6BAA1")), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                style.setSpan(new ForegroundColorSpan(Color.parseColor("#C6BAA1")), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
 //                            style.setSpan(new ForegroundColorSpan(Color.RED),7,9, Spannable.SPAN_EXCLUSIVE_INCLUSIVE);
-                if(!TextUtils.isEmpty(strFilter)) {
-                    int startStr=str.toLowerCase().indexOf(strFilter.toLowerCase());
-                    log("startStr:"+startStr);
-                    int endStr=startStr+strFilter.length();
-                    log("endStr:"+endStr);
-                    if(startStr>=0)
-                    style.setSpan(new ForegroundColorSpan(Color.parseColor("#66cc33")), startStr, endStr, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                if (!TextUtils.isEmpty(strFilter)) {
+                    int startStr = str.toLowerCase().indexOf(strFilter.toLowerCase());
+                    log("startStr:" + startStr);
+                    if (startStr >= 0) {
+                        int endStr = startStr + strFilter.length();
+                        log("endStr:" + endStr);
+                        style.setSpan(new ForegroundColorSpan(Color.parseColor("#66cc33")), startStr, endStr, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    }
                 }
                 tv.append(style);
 
@@ -136,10 +142,72 @@ public class MainActivity extends ActionBarActivity {
             }
         };
 
+        speechSynthesizer = new SpeechSynthesizer(getApplicationContext(),
+                "holder", new SpeechSynthesizerListener() {
+            @Override
+            public void onStartWorking(SpeechSynthesizer synthesizer) {
+                log("开始工作，请等待数据...");
+            }
+
+            @Override
+            public void onSpeechStart(SpeechSynthesizer synthesizer) {
+                log("朗读开始");
+            }
+
+            @Override
+            public void onSpeechResume(SpeechSynthesizer synthesizer) {
+                log("朗读继续");
+            }
+
+            @Override
+            public void onSpeechProgressChanged(SpeechSynthesizer synthesizer,
+                                                int progress) {
+                // TODO Auto-generated method stub
+
+            }
+
+            @Override
+            public void onSpeechPause(SpeechSynthesizer synthesizer) {
+                log("朗读已暂停");
+            }
+
+            @Override
+            public void onSpeechFinish(SpeechSynthesizer synthesizer) {
+                log("朗读已停止");
+            }
+
+            @Override
+            public void onNewDataArrive(SpeechSynthesizer synthesizer,
+                                        byte[] dataBuffer, int dataLength) {
+                log("新的音频数据：" + dataLength);
+            }
+
+            @Override
+            public void onError(SpeechSynthesizer synthesizer, SpeechError error) {
+                log("发生错误：" + error.errorDescription + "(" + error.errorCode + ")");
+            }
+
+            @Override
+            public void onCancel(SpeechSynthesizer synthesizer) {
+                log("已取消");
+            }
+
+            @Override
+            public void onBufferProgressChanged(SpeechSynthesizer synthesizer,
+                                                int progress) {
+                // TODO Auto-generated method stub
+
+            }
+        });
+        // 此处需要将setApiKey方法的两个参数替换为你在百度开发者中心注册应用所得到的apiKey和secretKey
+        speechSynthesizer.setApiKey(Constants.API_KEY,Constants.SECRET_KEY);
+        speechSynthesizer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+        setVolumeControlStream(AudioManager.STREAM_MUSIC);
+
         findViewById(R.id.btn_play).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
+play();
             }
         });
         findViewById(R.id.btn_record).setOnClickListener(new View.OnClickListener() {
@@ -148,6 +216,45 @@ public class MainActivity extends ActionBarActivity {
                 listenToVoice();
             }
         });
+    }
+
+    private void play() {
+        new Thread(new Runnable() {
+
+            @Override
+            public void run() {
+                setSpeechSynthesizerParams();
+                int ret = speechSynthesizer.speak(listSentence.get(listSentence.size()-1).content);
+                if (ret != 0) {
+                    log("开始合成器失败：" + errorCodeAndDescription(ret));
+                }
+            }
+        }).start();
+    }
+
+    private String errorCodeAndDescription(int errorCode) {
+        String errorDescription = SpeechError.errorDescription(errorCode);
+        return errorDescription + "(" + errorCode + ")";
+    }
+
+    private void setSpeechSynthesizerParams() {
+        speechSynthesizer.setParam(SpeechSynthesizer.PARAM_SPEAKER,
+                SpeechSynthesizer .SPEAKER_FEMALE);
+        speechSynthesizer.setParam(SpeechSynthesizer.PARAM_VOLUME, "5");
+        speechSynthesizer.setParam(SpeechSynthesizer.PARAM_SPEED, "5");
+        speechSynthesizer.setParam(SpeechSynthesizer.PARAM_PITCH, "5");
+        speechSynthesizer.setParam(SpeechSynthesizer.PARAM_AUDIO_ENCODE,
+                SpeechSynthesizer.AUDIO_ENCODE_AMR);
+        speechSynthesizer.setParam(SpeechSynthesizer.PARAM_AUDIO_RATE,
+                SpeechSynthesizer.AUDIO_BITRATE_AMR_15K85);
+        speechSynthesizer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+        // speechSynthesizer.setParam(SpeechSynthesizer.PARAM_LANGUAGE, "ZH");
+        // speechSynthesizer.setParam(SpeechSynthesizer.PARAM_NUM_PRON, "0");
+        // speechSynthesizer.setParam(SpeechSynthesizer.PARAM_ENG_PRON, "0");
+        // speechSynthesizer.setParam(SpeechSynthesizer.PARAM_PUNC, "0");
+        // speechSynthesizer.setParam(SpeechSynthesizer.PARAM_BACKGROUND, "0");
+        // speechSynthesizer.setParam(SpeechSynthesizer.PARAM_STYLE, "0");
+        // speechSynthesizer.setParam(SpeechSynthesizer.PARAM_TERRITORY, "0");
     }
 
     private void listenToVoice() {
@@ -233,6 +340,20 @@ public class MainActivity extends ActionBarActivity {
         if (mDialog != null) {
             mDialog.dismiss();
         }
+
+        if(speechSynthesizer!=null){
+            speechSynthesizer.cancel();
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
     }
 
     @Override
@@ -260,6 +381,6 @@ public class MainActivity extends ActionBarActivity {
     }
 
     private void log(String msg) {
-        Log.d(this.getClass().getSimpleName(), msg);
+        Log.d("MainActivity", msg);
     }
 }
