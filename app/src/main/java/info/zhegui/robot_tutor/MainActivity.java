@@ -1,10 +1,12 @@
 package info.zhegui.robot_tutor;
 
+import android.content.Intent;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.media.AudioManager;
 import android.os.Handler;
 import android.os.Message;
+import android.speech.tts.TextToSpeech;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.text.Spannable;
@@ -33,6 +35,7 @@ import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.Locale;
 
 
 public class MainActivity extends ActionBarActivity {
@@ -40,7 +43,7 @@ public class MainActivity extends ActionBarActivity {
     private BaiduASRDigitalDialog mDialog = null;
 
     private DialogRecognitionListener mRecognitionListener;
-    private SpeechSynthesizer speechSynthesizer;
+//    private SpeechSynthesizer speechSynthesizer;
     private int mCurrentTheme = Config.DIALOG_THEME;
     private LinkedList<Sentence> listSentence = new LinkedList<Sentence>();
 
@@ -49,6 +52,10 @@ public class MainActivity extends ActionBarActivity {
     private final int WHAT_SHOW_TEXT = 101, WHAT_FILTER_TEXT = 102;
 
     private Sentence lastSentence;
+
+    private TextToSpeech mTts;
+
+    private final int REQUEST_MY_DATA_CHECK_CODE = 201;
 
     private Handler mHandler = new Handler() {
         @Override
@@ -142,72 +149,72 @@ public class MainActivity extends ActionBarActivity {
             }
         };
 
-        speechSynthesizer = new SpeechSynthesizer(getApplicationContext(),
-                "holder", new SpeechSynthesizerListener() {
-            @Override
-            public void onStartWorking(SpeechSynthesizer synthesizer) {
-                log("开始工作，请等待数据...");
-            }
-
-            @Override
-            public void onSpeechStart(SpeechSynthesizer synthesizer) {
-                log("朗读开始");
-            }
-
-            @Override
-            public void onSpeechResume(SpeechSynthesizer synthesizer) {
-                log("朗读继续");
-            }
-
-            @Override
-            public void onSpeechProgressChanged(SpeechSynthesizer synthesizer,
-                                                int progress) {
-                // TODO Auto-generated method stub
-
-            }
-
-            @Override
-            public void onSpeechPause(SpeechSynthesizer synthesizer) {
-                log("朗读已暂停");
-            }
-
-            @Override
-            public void onSpeechFinish(SpeechSynthesizer synthesizer) {
-                log("朗读已停止");
-            }
-
-            @Override
-            public void onNewDataArrive(SpeechSynthesizer synthesizer,
-                                        byte[] dataBuffer, int dataLength) {
-                log("新的音频数据：" + dataLength);
-            }
-
-            @Override
-            public void onError(SpeechSynthesizer synthesizer, SpeechError error) {
-                log("发生错误：" + error.errorDescription + "(" + error.errorCode + ")");
-            }
-
-            @Override
-            public void onCancel(SpeechSynthesizer synthesizer) {
-                log("已取消");
-            }
-
-            @Override
-            public void onBufferProgressChanged(SpeechSynthesizer synthesizer,
-                                                int progress) {
-                // TODO Auto-generated method stub
-
-            }
-        });
+//        speechSynthesizer = new SpeechSynthesizer(getApplicationContext(),
+//                "holder", new SpeechSynthesizerListener() {
+//            @Override
+//            public void onStartWorking(SpeechSynthesizer synthesizer) {
+//                log("开始工作，请等待数据...");
+//            }
+//
+//            @Override
+//            public void onSpeechStart(SpeechSynthesizer synthesizer) {
+//                log("朗读开始");
+//            }
+//
+//            @Override
+//            public void onSpeechResume(SpeechSynthesizer synthesizer) {
+//                log("朗读继续");
+//            }
+//
+//            @Override
+//            public void onSpeechProgressChanged(SpeechSynthesizer synthesizer,
+//                                                int progress) {
+//                // TODO Auto-generated method stub
+//
+//            }
+//
+//            @Override
+//            public void onSpeechPause(SpeechSynthesizer synthesizer) {
+//                log("朗读已暂停");
+//            }
+//
+//            @Override
+//            public void onSpeechFinish(SpeechSynthesizer synthesizer) {
+//                log("朗读已停止");
+//            }
+//
+//            @Override
+//            public void onNewDataArrive(SpeechSynthesizer synthesizer,
+//                                        byte[] dataBuffer, int dataLength) {
+//                log("新的音频数据：" + dataLength);
+//            }
+//
+//            @Override
+//            public void onError(SpeechSynthesizer synthesizer, SpeechError error) {
+//                log("发生错误：" + error.errorDescription + "(" + error.errorCode + ")");
+//            }
+//
+//            @Override
+//            public void onCancel(SpeechSynthesizer synthesizer) {
+//                log("已取消");
+//            }
+//
+//            @Override
+//            public void onBufferProgressChanged(SpeechSynthesizer synthesizer,
+//                                                int progress) {
+//                // TODO Auto-generated method stub
+//
+//            }
+//        });
         // 此处需要将setApiKey方法的两个参数替换为你在百度开发者中心注册应用所得到的apiKey和secretKey
-        speechSynthesizer.setApiKey(Constants.API_KEY,Constants.SECRET_KEY);
-        speechSynthesizer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-        setVolumeControlStream(AudioManager.STREAM_MUSIC);
+//        speechSynthesizer.setApiKey(Constants.API_KEY, Constants.SECRET_KEY);
+//        speechSynthesizer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+//        setVolumeControlStream(AudioManager.STREAM_MUSIC);
 
         findViewById(R.id.btn_play).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-play();
+                play2();
             }
         });
         findViewById(R.id.btn_record).setOnClickListener(new View.OnClickListener() {
@@ -216,20 +223,51 @@ play();
                 listenToVoice();
             }
         });
+
+        Intent checkIntent = new Intent();
+        checkIntent.setAction(TextToSpeech.Engine.ACTION_CHECK_TTS_DATA);
+        startActivityForResult(checkIntent, REQUEST_MY_DATA_CHECK_CODE);
     }
 
-    private void play() {
-        new Thread(new Runnable() {
+    protected void onActivityResult(
+            int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_MY_DATA_CHECK_CODE) {
+            if (resultCode == TextToSpeech.Engine.CHECK_VOICE_DATA_PASS) {
+                // success, create the TTS instance
+                mTts = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
+                    @Override
+                    public void onInit(int status) {
+                        log("onInit(" + status + ")");
+                    }
+                });
 
-            @Override
-            public void run() {
-                setSpeechSynthesizerParams();
-                int ret = speechSynthesizer.speak(listSentence.get(1).content);
-                if (ret != 0) {
-                    log("开始合成器失败：" + errorCodeAndDescription(ret));
-                }
+                mTts.setLanguage(Locale.US);
+            } else {
+                // missing data, install it
+                Intent installIntent = new Intent();
+                installIntent.setAction(
+                        TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA);
+                startActivity(installIntent);
             }
-        }).start();
+        }
+    }
+
+//    private void play() {
+//        new Thread(new Runnable() {
+//
+//            @Override
+//            public void run() {
+//                setSpeechSynthesizerParams();
+//                int ret = speechSynthesizer.speak(listSentence.get(listSentence.size()-1).content);
+//                if (ret != 0) {
+//                    log("开始合成器失败：" + errorCodeAndDescription(ret));
+//                }
+//            }
+//        }).start();
+//    }
+
+    private void play2() {
+        mTts.speak(listSentence.get(1).content, TextToSpeech.QUEUE_FLUSH, null);
     }
 
     private String errorCodeAndDescription(int errorCode) {
@@ -237,25 +275,25 @@ play();
         return errorDescription + "(" + errorCode + ")";
     }
 
-    private void setSpeechSynthesizerParams() {
-        speechSynthesizer.setParam(SpeechSynthesizer.PARAM_SPEAKER,
-                SpeechSynthesizer.SPEAKER_MALE);
-        speechSynthesizer.setParam(SpeechSynthesizer.PARAM_VOLUME, "5");
-        speechSynthesizer.setParam(SpeechSynthesizer.PARAM_SPEED, "5");
-        speechSynthesizer.setParam(SpeechSynthesizer.PARAM_PITCH, "5");
-        speechSynthesizer.setParam(SpeechSynthesizer.PARAM_AUDIO_ENCODE,
-                SpeechSynthesizer.AUDIO_ENCODE_AMR);
-        speechSynthesizer.setParam(SpeechSynthesizer.PARAM_AUDIO_RATE,
-                SpeechSynthesizer.AUDIO_BITRATE_AMR_15K85);
-        speechSynthesizer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-        // speechSynthesizer.setParam(SpeechSynthesizer.PARAM_LANGUAGE, "ZH");
-        // speechSynthesizer.setParam(SpeechSynthesizer.PARAM_NUM_PRON, "0");
-        // speechSynthesizer.setParam(SpeechSynthesizer.PARAM_ENG_PRON, "0");
-        // speechSynthesizer.setParam(SpeechSynthesizer.PARAM_PUNC, "0");
-        // speechSynthesizer.setParam(SpeechSynthesizer.PARAM_BACKGROUND, "0");
-        // speechSynthesizer.setParam(SpeechSynthesizer.PARAM_STYLE, "0");
-        // speechSynthesizer.setParam(SpeechSynthesizer.PARAM_TERRITORY, "0");
-    }
+//    private void setSpeechSynthesizerParams() {
+//        speechSynthesizer.setParam(SpeechSynthesizer.PARAM_SPEAKER,
+//                SpeechSynthesizer.SPEAKER_MALE);
+//        speechSynthesizer.setParam(SpeechSynthesizer.PARAM_VOLUME, "5");
+//        speechSynthesizer.setParam(SpeechSynthesizer.PARAM_SPEED, "5");
+//        speechSynthesizer.setParam(SpeechSynthesizer.PARAM_PITCH, "5");
+//        speechSynthesizer.setParam(SpeechSynthesizer.PARAM_AUDIO_ENCODE,
+//                SpeechSynthesizer.AUDIO_ENCODE_AMR);
+//        speechSynthesizer.setParam(SpeechSynthesizer.PARAM_AUDIO_RATE,
+//                SpeechSynthesizer.AUDIO_BITRATE_AMR_15K85);
+//        speechSynthesizer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+//        // speechSynthesizer.setParam(SpeechSynthesizer.PARAM_LANGUAGE, "ZH");
+//        // speechSynthesizer.setParam(SpeechSynthesizer.PARAM_NUM_PRON, "0");
+//        // speechSynthesizer.setParam(SpeechSynthesizer.PARAM_ENG_PRON, "0");
+//        // speechSynthesizer.setParam(SpeechSynthesizer.PARAM_PUNC, "0");
+//        // speechSynthesizer.setParam(SpeechSynthesizer.PARAM_BACKGROUND, "0");
+//        // speechSynthesizer.setParam(SpeechSynthesizer.PARAM_STYLE, "0");
+//        // speechSynthesizer.setParam(SpeechSynthesizer.PARAM_TERRITORY, "0");
+//    }
 
     private void listenToVoice() {
         log("listToVoice()");
@@ -341,9 +379,9 @@ play();
             mDialog.dismiss();
         }
 
-        if(speechSynthesizer!=null){
-            speechSynthesizer.cancel();
-        }
+//        if (speechSynthesizer != null) {
+//            speechSynthesizer.cancel();
+//        }
     }
 
     @Override
