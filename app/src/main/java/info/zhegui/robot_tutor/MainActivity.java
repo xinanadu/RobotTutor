@@ -79,7 +79,7 @@ public class MainActivity extends ActionBarActivity {
                     break;
 
                 case WHAT_SAY_WELCOME:
-                    play2("Nice to meet you! How you doing today?");
+                    play2("Hey! I'm teacher Lily. Nice to meet you! How you doing today?");
 
                     break;
             }
@@ -222,7 +222,7 @@ public class MainActivity extends ActionBarActivity {
         findViewById(R.id.btn_play).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                play2();
+                play2(listSentence.get(2).content);
             }
         });
         findViewById(R.id.btn_record).setOnClickListener(new View.OnClickListener() {
@@ -253,6 +253,8 @@ mTtsAvailable=true;
                 });
 
                 mTts.setLanguage(Locale.US);
+
+                mHandler.sendEmptyMessageDelayed(WHAT_SAY_WELCOME, 1000);
             } else {
                 // missing data, install it
                 Intent installIntent = new Intent();
