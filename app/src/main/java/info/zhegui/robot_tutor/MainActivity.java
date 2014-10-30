@@ -49,13 +49,16 @@ public class MainActivity extends ActionBarActivity {
 
     private TextView tv, tvNoMatch;
 
-    private final int WHAT_SHOW_TEXT = 101, WHAT_FILTER_TEXT = 102;
+    private final int WHAT_SHOW_TEXT = 101, WHAT_FILTER_TEXT = 102, WHAT_SAY_WELCOME=103;
 
     private Sentence lastSentence;
 
     private TextToSpeech mTts;
 
     private final int REQUEST_MY_DATA_CHECK_CODE = 201;
+
+    /**TTS是否有效*/
+    private boolean mTtsAvailable;
 
     private Handler mHandler = new Handler() {
         @Override
@@ -73,6 +76,11 @@ public class MainActivity extends ActionBarActivity {
                         String str = (String) msg.obj;
                         showMyDialog(str);
                     }
+                    break;
+
+                case WHAT_SAY_WELCOME:
+                    play2("Nice to meet you! How you doing today?");
+
                     break;
             }
 
@@ -238,6 +246,9 @@ public class MainActivity extends ActionBarActivity {
                     @Override
                     public void onInit(int status) {
                         log("onInit(" + status + ")");
+                        if(status==TextToSpeech.SUCCESS){
+mTtsAvailable=true;
+                        }
                     }
                 });
 
@@ -266,8 +277,13 @@ public class MainActivity extends ActionBarActivity {
 //        }).start();
 //    }
 
-    private void play2() {
-        mTts.speak(listSentence.get(1).content, TextToSpeech.QUEUE_FLUSH, null);
+    private void play2(String text) {
+        if(!mTtsAvailable){
+            Utils.toast(MainActivity.this, "手机没有TTS功能，暂无法使用！");
+            return;
+        }
+        int speakRs=mTts.speak(text, TextToSpeech.QUEUE_FLUSH, null);
+        log("speak failed");
     }
 
     private String errorCodeAndDescription(int errorCode) {
